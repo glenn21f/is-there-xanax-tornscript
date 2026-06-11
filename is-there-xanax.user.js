@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Is there Xanax ?
 // @namespace    glenn.torn.is.there.xanax
-// @version      0.6.0
+// @version      0.6.1
 // @description  Checks whether Xanax is available abroad in Japan, United Kingdom, and South Africa, then estimates whether stock is likely to still be available when you land.
 // @author       Glenn
 // @homepageURL  https://github.com/glenn21f/is-there-xanax-tornscript
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_NAME = 'Is there Xanax ?';
-  const SCRIPT_VERSION = '0.6.0';
+  const SCRIPT_VERSION = '0.6.1';
   const LS_PREFIX = 'xfp_v3_';
   const DROQS_META = 'https://droqsdb.com/api/public/v1/meta';
   const DROQS_EXPORT = 'https://droqsdb.com/api/public/v1/export';
@@ -1232,11 +1232,27 @@
     const byId = (id) => document.getElementById(id);
 
     byId('xfp-refresh')?.addEventListener('click', () => refreshAll(true));
-    byId('xfp-collapse')?.addEventListener('click', () => {
+    byId('xfp-collapse')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       if (Date.now() < suppressCollapseClickUntil) return;
       setCfg('collapsed', !Boolean(getCfg('collapsed')));
       render();
     });
+
+    const panel = byId('xfp-panel');
+    if (panel && panel.dataset.collapsedClickReady !== '1') {
+      panel.dataset.collapsedClickReady = '1';
+      panel.addEventListener('click', (event) => {
+        if (!Boolean(getCfg('collapsed'))) return;
+        if (Date.now() < suppressCollapseClickUntil) return;
+        if (!event.target.closest('#xfp-panel')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setCfg('collapsed', false);
+        render();
+      }, true);
+    }
 
     const toggleSettings = () => {
       const box = byId('xfp-settings-box');
@@ -1439,7 +1455,6 @@
       font-size: 12px;
       line-height: 1.28;
       letter-spacing: -0.12px;
-      touch-action: none;
     }
 
     #xfp-panel button,
@@ -1481,6 +1496,7 @@
       border-bottom: 1px solid rgba(0, 0, 0, 0.08);
       cursor: grab;
       user-select: none;
+      touch-action: none;
     }
 
     .xfp-header:active {
@@ -1804,49 +1820,69 @@
     }
 
     #xfp-panel.xfp-collapsed {
-      width: 66px;
-      height: 42px;
-      min-width: 66px;
+      width: 54px;
+      height: 31px;
+      min-width: 54px;
       overflow: visible;
-      background: transparent;
-      border-color: transparent;
-      border-radius: 9999px;
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
 
     #xfp-panel.xfp-collapsed .xfp-header {
       position: static;
-      min-height: 42px;
-      width: 66px;
+      min-height: 31px;
+      width: 54px;
+      height: 31px;
       padding: 0;
       border: 0;
-      border-radius: 9999px;
-      background: rgba(250, 250, 252, 0.92);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.14);
+      border-radius: 0;
+      background: transparent !important;
+      box-shadow: none !important;
       justify-content: center;
+      cursor: pointer;
+      touch-action: none;
     }
 
     #xfp-panel.xfp-collapsed .xfp-actions,
     #xfp-panel.xfp-collapsed .xfp-title-button strong,
     #xfp-panel.xfp-collapsed .xfp-title-button small {
-      display: none;
+      display: none !important;
     }
 
     #xfp-panel.xfp-collapsed .xfp-title-button {
       justify-content: center;
-      width: 66px;
-      height: 42px;
+      width: 54px;
+      height: 31px;
+      min-height: 31px;
       flex: 0 0 auto;
+      padding: 0;
+      border: 0 !important;
+      border-radius: 0;
+      background: transparent !important;
+      box-shadow: none !important;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     #xfp-panel.xfp-collapsed .xfp-icon {
-      width: 62px;
-      height: 38px;
+      width: 54px;
+      height: 31px;
       border: 0;
-      background: transparent;
+      border-radius: 0;
+      background: transparent !important;
+      overflow: visible;
+      pointer-events: none;
     }
 
     #xfp-panel.xfp-collapsed .xfp-icon img {
-      width: 82px;
+      width: 58px;
+      max-width: none;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
     }
 
     #xfp-panel.xfp-compact {
@@ -1897,6 +1933,24 @@
         grid-template-columns: 1fr;
         margin: 0 6px 6px;
         padding: 8px;
+      }
+
+      #xfp-panel.xfp-collapsed {
+        width: 48px;
+        height: 28px;
+        min-width: 48px;
+      }
+
+      #xfp-panel.xfp-collapsed .xfp-header,
+      #xfp-panel.xfp-collapsed .xfp-title-button,
+      #xfp-panel.xfp-collapsed .xfp-icon {
+        width: 48px;
+        height: 28px;
+        min-height: 28px;
+      }
+
+      #xfp-panel.xfp-collapsed .xfp-icon img {
+        width: 52px;
       }
     }
 
