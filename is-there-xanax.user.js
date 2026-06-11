@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Is there Xanax ?
 // @namespace    glenn.torn.is.there.xanax
-// @version      0.5.1
-// @description  Apple-style DroqsDB-first Xanax travel planner with YATA fallback, cached stock, Torn API flight direction detection, and Torn PDA compatibility.
+// @version      0.6.0
+// @description  Checks whether Xanax is available abroad in Japan, United Kingdom, and South Africa, then estimates whether stock is likely to still be available when you land.
 // @author       Glenn
 // @homepageURL  https://github.com/glenn21f/is-there-xanax-tornscript
 // @supportURL   https://github.com/glenn21f/is-there-xanax-tornscript/issues
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_NAME = 'Is there Xanax ?';
-  const SCRIPT_VERSION = '0.5.1';
+  const SCRIPT_VERSION = '0.6.0';
   const LS_PREFIX = 'xfp_v3_';
   const DROQS_META = 'https://droqsdb.com/api/public/v1/meta';
   const DROQS_EXPORT = 'https://droqsdb.com/api/public/v1/export';
@@ -34,6 +34,7 @@
   const YATA_CACHE_KEY = LS_PREFIX + 'yata_cache';
   const YATA_COOLDOWN_KEY = LS_PREFIX + 'yata_cooldown_until';
   const XANAX_ID = 206;
+  const XANAX_ICON_DATA = 'data:image/webp;base64,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';
 
   const COUNTRIES = {
     jap: {
@@ -75,8 +76,8 @@
     freshMins: 20,
     autoMins: 2,
     autoPushYata: false,
-    collapsed: false,
-    compact: false
+    collapsed: true,
+    compact: true
   };
 
   const state = {
@@ -94,6 +95,9 @@
     sourceMeta: null
   };
 
+  let dragInfo = null;
+  let suppressCollapseClickUntil = 0;
+
   function getCfg(key) {
     const raw = localStorage.getItem(LS_PREFIX + key);
     if (raw === null || raw === undefined) return DEFAULTS[key];
@@ -102,6 +106,16 @@
 
   function setCfg(key, value) {
     localStorage.setItem(LS_PREFIX + key, JSON.stringify(value));
+  }
+
+  function runV6Migration() {
+    const key = LS_PREFIX + 'v6_migrated';
+    if (localStorage.getItem(key)) return;
+
+    // v6 is intentionally smaller and starts minimized so it does not cover Torn chat/PDA UI.
+    setCfg('collapsed', true);
+    setCfg('compact', true);
+    localStorage.setItem(key, '1');
   }
 
   function esc(value) {
@@ -931,11 +945,11 @@
       return `
         <section class="xfp-travel xfp-card">
           <div>
-            <div class="xfp-eyebrow">Torn API</div>
-            <div class="xfp-travel-title">API key not set</div>
-            <div class="xfp-travel-note">Stock works. Flight direction needs your public API key.</div>
+            <div class="xfp-eyebrow">Status</div>
+            <div class="xfp-travel-title">API key missing</div>
+            <div class="xfp-travel-note">Add key for flight direction.</div>
           </div>
-          <button class="xfp-link-btn" id="xfp-open-settings-2">Add key</button>
+          <button class="xfp-link-btn" id="xfp-open-settings-2">Key</button>
         </section>`;
     }
 
@@ -943,9 +957,9 @@
       return `
         <section class="xfp-travel xfp-card">
           <div>
-            <div class="xfp-eyebrow">Travel status</div>
-            <div class="xfp-travel-title">Unavailable</div>
-            <div class="xfp-travel-note">The Torn API did not return travel data.</div>
+            <div class="xfp-eyebrow">Status</div>
+            <div class="xfp-travel-title">Travel unavailable</div>
+            <div class="xfp-travel-note">Torn API did not return travel data.</div>
           </div>
         </section>`;
     }
@@ -953,17 +967,17 @@
     const t = state.travel;
     const cls = t.mode === 'outbound' ? 'xfp-blue' : t.mode === 'returning' ? 'xfp-gray' : 'xfp-plain';
     const sub = t.mode === 'outbound'
-      ? 'Current flight target is highlighted below.'
+      ? 'Target highlighted.'
       : t.mode === 'returning'
-        ? 'You are flying home. Stock predictions are for your next outbound trip.'
+        ? 'Predictions are for next trip.'
         : t.mode === 'abroad'
-          ? 'You are abroad. Buy if the local item page confirms stock.'
-          : 'Not currently flying. Predictions assume you leave now.';
+          ? 'Confirm on item page.'
+          : 'Assumes leaving now.';
 
     return `
       <section class="xfp-travel xfp-card ${cls}">
         <div>
-          <div class="xfp-eyebrow">Travel status</div>
+          <div class="xfp-eyebrow">Status</div>
           <div class="xfp-travel-title">${esc(t.headline)}</div>
           <div class="xfp-travel-note">${esc(t.detail)} · ${esc(sub)}</div>
         </div>
@@ -980,27 +994,25 @@
         ? minsToText(row.ageMins + (row.currentFlightMins ?? row.flightWorstMins))
         : 'unknown';
       const flyText = row.currentFlightMins
-        ? `your flight · lands ${row.eta}`
-        : `${minsToText(row.flightWorstMins)} · ETA ${row.eta}`;
+        ? `land ${row.eta}`
+        : `${minsToText(row.flightWorstMins)} → ${row.eta}`;
+      const targetText = row.isCurrentTarget ? '<span class="xfp-target-dot">current flight</span>' : '';
 
       return `
         <article class="xfp-country-card ${row.isCurrentTarget ? 'xfp-target' : ''}">
           <div class="xfp-country-top">
-            <div>
-              <div class="xfp-country-name">${esc(row.short)}</div>
-              <div class="xfp-country-city">${esc(row.city)}</div>
-            </div>
-            <span class="xfp-pill ${j.cls}">${esc(j.label)}</span>
+            <div class="xfp-country-name">${esc(row.short)} ${targetText}</div>
+            <span class="xfp-pill ${j.cls}" title="${esc(j.note)}">${esc(j.label)}</span>
           </div>
-
-          <div class="xfp-metrics">
-            <div><span>Stock</span><strong>${row.quantity.toLocaleString()}</strong></div>
-            <div><span>Price</span><strong>${money(row.cost)}</strong></div>
-            <div><span>Land</span><strong>${esc(flyText)}</strong></div>
-            <div><span>Data</span><strong>${esc(ageText)} now · ${esc(landingAge)} landing</strong></div>
+          <div class="xfp-line">
+            <span><b>${row.quantity.toLocaleString()}</b> stock</span>
+            <span>${money(row.cost)}</span>
+            <span>${esc(flyText)}</span>
           </div>
-
-          <p>${esc(j.note)}</p>
+          <div class="xfp-line xfp-muted-line">
+            <span>data ${esc(ageText)}</span>
+            <span>landing age ${esc(landingAge)}</span>
+          </div>
         </article>`;
     }).join('');
   }
@@ -1069,6 +1081,101 @@
     return `<option value="${value}" ${getCfg('flightMode') === value ? 'selected' : ''}>${label}</option>`;
   }
 
+  function getSavedPanelPosition() {
+    try {
+      const raw = localStorage.getItem(LS_PREFIX + 'panel_pos');
+      if (!raw) return null;
+      const pos = JSON.parse(raw);
+      if (!Number.isFinite(pos?.left) || !Number.isFinite(pos?.top)) return null;
+      return pos;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function savePanelPosition(left, top) {
+    localStorage.setItem(LS_PREFIX + 'panel_pos', JSON.stringify({ left: Math.round(left), top: Math.round(top) }));
+  }
+
+  function clampPanelPosition(left, top) {
+    const panel = document.getElementById('xfp-panel');
+    if (!panel) return { left, top };
+    const rect = panel.getBoundingClientRect();
+    const margin = 8;
+    const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
+    const maxTop = Math.max(margin, window.innerHeight - rect.height - margin);
+    return {
+      left: Math.min(Math.max(left, margin), maxLeft),
+      top: Math.min(Math.max(top, margin), maxTop)
+    };
+  }
+
+  function applyPanelPosition() {
+    const panel = document.getElementById('xfp-panel');
+    if (!panel) return;
+    const saved = getSavedPanelPosition();
+    if (!saved) return;
+
+    const pos = clampPanelPosition(saved.left, saved.top);
+    panel.style.left = pos.left + 'px';
+    panel.style.top = pos.top + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+    panel.style.transform = 'none';
+  }
+
+  function bindPanelDrag() {
+    const panel = document.getElementById('xfp-panel');
+    const handle = document.getElementById('xfp-drag-handle');
+    if (!panel || !handle || handle.dataset.dragReady === '1') return;
+    handle.dataset.dragReady = '1';
+
+    handle.addEventListener('pointerdown', (event) => {
+      if (event.target.closest('input, select, textarea, #xfp-refresh, #xfp-settings, #xfp-save, #xfp-close-settings, #xfp-open-settings-2')) return;
+
+      const rect = panel.getBoundingClientRect();
+      dragInfo = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        left: rect.left,
+        top: rect.top,
+        moved: false
+      };
+
+      panel.style.left = rect.left + 'px';
+      panel.style.top = rect.top + 'px';
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+      panel.style.transform = 'none';
+      handle.setPointerCapture?.(event.pointerId);
+    });
+
+    handle.addEventListener('pointermove', (event) => {
+      if (!dragInfo || dragInfo.pointerId !== event.pointerId) return;
+      const dx = event.clientX - dragInfo.startX;
+      const dy = event.clientY - dragInfo.startY;
+      if (Math.abs(dx) + Math.abs(dy) > 4) dragInfo.moved = true;
+      const pos = clampPanelPosition(dragInfo.left + dx, dragInfo.top + dy);
+      panel.style.left = pos.left + 'px';
+      panel.style.top = pos.top + 'px';
+    });
+
+    handle.addEventListener('pointerup', (event) => {
+      if (!dragInfo || dragInfo.pointerId !== event.pointerId) return;
+      const rect = panel.getBoundingClientRect();
+      const moved = dragInfo.moved;
+      dragInfo = null;
+      savePanelPosition(rect.left, rect.top);
+      if (moved) suppressCollapseClickUntil = Date.now() + 250;
+      handle.releasePointerCapture?.(event.pointerId);
+    });
+
+    handle.addEventListener('pointercancel', () => {
+      dragInfo = null;
+    });
+  }
+
   function render(error = '') {
     const panel = document.getElementById('xfp-panel');
     if (!panel) return;
@@ -1092,9 +1199,9 @@
     const book = Boolean(getCfg('bookActive'));
 
     panel.innerHTML = `
-      <header class="xfp-header">
+      <header class="xfp-header" id="xfp-drag-handle">
         <button type="button" class="xfp-title-button" id="xfp-collapse" title="Collapse / expand">
-          <span class="xfp-icon">💊</span>
+          <span class="xfp-icon"><img src="${XANAX_ICON_DATA}" alt="Xanax"></span>
           <span>
             <strong>${SCRIPT_NAME}</strong>
             <small>${esc(mode)}${book ? ' + book' : ''} · ${esc(sourceLabel)} · ${esc(last)}</small>
@@ -1112,12 +1219,13 @@
         ${state.warning ? `<div class="xfp-warning">${esc(state.warning)}</div>` : ''}
         ${travelCardHtml()}
         <section class="xfp-stock-list">${compactRowsHtml(state.rows)}</section>
-        <p class="xfp-foot">DroqsDB is primary. YATA is fallback. Cached stock is clearly marked when live data fails.</p>
+        <p class="xfp-foot">DroqsDB first · YATA/cache fallback.</p>
       </main>
 
       ${settingsHtml()}`;
 
     bindEvents();
+    applyPanelPosition();
   }
 
   function bindEvents() {
@@ -1125,6 +1233,7 @@
 
     byId('xfp-refresh')?.addEventListener('click', () => refreshAll(true));
     byId('xfp-collapse')?.addEventListener('click', () => {
+      if (Date.now() < suppressCollapseClickUntil) return;
       setCfg('collapsed', !Boolean(getCfg('collapsed')));
       render();
     });
@@ -1155,6 +1264,8 @@
       scheduleAutoRefresh();
       refreshAll(true);
     });
+
+    bindPanelDrag();
   }
 
   async function refreshAll(force = false) {
@@ -1301,36 +1412,34 @@
     #xfp-panel {
       --xfp-blue: #0066cc;
       --xfp-blue-focus: #0071e3;
-      --xfp-blue-dark: #2997ff;
       --xfp-ink: #1d1d1f;
-      --xfp-muted: #7a7a7a;
-      --xfp-muted-2: #333333;
+      --xfp-muted: #6e6e73;
       --xfp-hairline: #e0e0e0;
       --xfp-parchment: #f5f5f7;
       --xfp-pearl: #fafafc;
       --xfp-white: #ffffff;
-      --xfp-dark: #272729;
 
       position: fixed;
-      right: 16px;
+      right: 12px;
       top: 50%;
       bottom: auto;
       transform: translateY(-50%);
-      width: 470px;
-      max-width: calc(100vw - 32px);
-      max-height: calc(100vh - 88px);
+      width: 340px;
+      max-width: calc(100vw - 16px);
+      max-height: calc(100vh - 24px);
       z-index: 2147483647;
       overflow: auto;
-      background: rgba(245, 245, 247, 0.88);
+      background: rgba(245, 245, 247, 0.9);
       -webkit-backdrop-filter: saturate(180%) blur(20px);
       backdrop-filter: saturate(180%) blur(20px);
       color: var(--xfp-ink);
       border: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 18px;
       font-family: SF Pro Text, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;
-      font-size: 14px;
-      line-height: 1.43;
-      letter-spacing: -0.224px;
+      font-size: 12px;
+      line-height: 1.28;
+      letter-spacing: -0.12px;
+      touch-action: none;
     }
 
     #xfp-panel button,
@@ -1363,69 +1472,91 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      min-height: 64px;
-      padding: 12px 14px;
-      background: rgba(245, 245, 247, 0.82);
+      gap: 8px;
+      min-height: 48px;
+      padding: 8px 9px;
+      background: rgba(245, 245, 247, 0.86);
       -webkit-backdrop-filter: saturate(180%) blur(20px);
       backdrop-filter: saturate(180%) blur(20px);
       border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      cursor: grab;
+      user-select: none;
+    }
+
+    .xfp-header:active {
+      cursor: grabbing;
     }
 
     .xfp-title-button {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       background: transparent;
       color: var(--xfp-ink);
       text-align: left;
       min-width: 0;
       padding: 0;
+      flex: 1 1 auto;
     }
 
     .xfp-title-button strong {
       display: block;
       font-family: SF Pro Display, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;
-      font-size: 17px;
+      font-size: 14px;
       font-weight: 600;
-      line-height: 1.2;
-      letter-spacing: -0.374px;
+      line-height: 1.1;
+      letter-spacing: -0.224px;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 190px;
     }
 
     .xfp-title-button small {
       display: block;
       color: var(--xfp-muted);
-      font-size: 12px;
-      line-height: 1.2;
-      letter-spacing: -0.12px;
+      font-size: 10px;
+      line-height: 1.15;
+      letter-spacing: -0.08px;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 210px;
     }
 
     .xfp-icon {
       display: grid;
       place-items: center;
-      width: 34px;
-      height: 34px;
+      width: 42px;
+      height: 26px;
       border-radius: 9999px;
       background: var(--xfp-white);
       border: 1px solid rgba(0, 0, 0, 0.08);
       flex: 0 0 auto;
+      overflow: hidden;
+    }
+
+    .xfp-icon img {
+      display: block;
+      width: 56px;
+      height: auto;
+      transform: rotate(-3deg);
+      pointer-events: none;
     }
 
     .xfp-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 5px;
       flex: 0 0 auto;
     }
 
     .xfp-primary,
     .xfp-secondary,
     .xfp-link-btn {
-      min-height: 34px;
+      min-height: 28px;
       border-radius: 9999px;
-      padding: 8px 15px;
+      padding: 6px 10px;
       white-space: nowrap;
     }
 
@@ -1438,14 +1569,14 @@
     .xfp-link-btn {
       background: var(--xfp-white);
       color: var(--xfp-blue);
-      border: 1px solid rgba(0, 102, 204, 0.22) !important;
+      border: 1px solid rgba(0, 102, 204, 0.2) !important;
     }
 
     .xfp-round {
       display: grid;
       place-items: center;
-      width: 34px;
-      height: 34px;
+      width: 28px;
+      height: 28px;
       border-radius: 9999px;
       background: var(--xfp-white);
       color: var(--xfp-ink);
@@ -1454,7 +1585,7 @@
     }
 
     .xfp-body {
-      padding: 14px;
+      padding: 8px;
     }
 
     .xfp-card,
@@ -1462,114 +1593,110 @@
     .xfp-settings {
       background: var(--xfp-white);
       border: 1px solid var(--xfp-hairline);
-      border-radius: 18px;
+      border-radius: 14px;
     }
 
     .xfp-travel {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
+      gap: 8px;
+      padding: 9px 10px;
+      margin-bottom: 7px;
     }
 
     .xfp-travel.xfp-blue {
-      background: #ffffff;
-      border-color: rgba(0, 102, 204, 0.36);
-    }
-
-    .xfp-travel.xfp-gray {
-      background: var(--xfp-pearl);
+      border-color: rgba(0, 102, 204, 0.42);
     }
 
     .xfp-eyebrow {
       color: var(--xfp-muted);
-      font-size: 12px;
-      letter-spacing: -0.12px;
-      line-height: 1.2;
-      margin-bottom: 2px;
+      font-size: 10px;
+      line-height: 1.1;
+      margin-bottom: 1px;
     }
 
     .xfp-travel-title {
-      font-family: SF Pro Display, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;
-      font-size: 21px;
+      font-size: 14px;
       font-weight: 600;
-      line-height: 1.19;
-      letter-spacing: 0.231px;
+      line-height: 1.15;
       color: var(--xfp-ink);
     }
 
     .xfp-travel-note {
-      color: var(--xfp-muted-2);
-      margin-top: 4px;
-      font-size: 13px;
-      line-height: 1.35;
+      color: var(--xfp-muted);
+      margin-top: 2px;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .xfp-error,
+    .xfp-warning {
+      margin-bottom: 7px;
+      padding: 8px 9px;
+      border-radius: 14px;
+      font-size: 11px;
+      line-height: 1.25;
     }
 
     .xfp-error {
-      margin-bottom: 12px;
-      padding: 12px 14px;
       background: #fff2f2;
       border: 1px solid #ffd4d4;
-      border-radius: 18px;
       color: #8a1f1f;
     }
 
     .xfp-warning {
-      margin-bottom: 12px;
-      padding: 12px 14px;
       background: #fff8e8;
       border: 1px solid #f3d28a;
-      border-radius: 18px;
       color: #7a5200;
     }
 
     .xfp-stock-list {
       display: grid;
-      gap: 10px;
+      gap: 6px;
     }
 
     .xfp-country-card {
-      padding: 14px;
+      padding: 8px 9px;
     }
 
     .xfp-country-card.xfp-target {
-      border-color: rgba(0, 102, 204, 0.55);
+      border-color: rgba(0, 102, 204, 0.58);
       box-shadow: inset 0 0 0 1px rgba(0, 102, 204, 0.12);
     }
 
     .xfp-country-top {
       display: flex;
       justify-content: space-between;
-      gap: 10px;
-      align-items: flex-start;
-      margin-bottom: 10px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 5px;
     }
 
     .xfp-country-name {
-      font-size: 17px;
+      font-size: 13px;
       font-weight: 600;
-      line-height: 1.24;
-      letter-spacing: -0.374px;
+      line-height: 1.15;
       color: var(--xfp-ink);
+      min-width: 0;
     }
 
-    .xfp-country-city {
-      color: var(--xfp-muted);
-      font-size: 12px;
-      line-height: 1.3;
-      margin-top: 1px;
+    .xfp-target-dot {
+      display: inline-flex;
+      margin-left: 4px;
+      color: var(--xfp-blue);
+      font-size: 10px;
+      font-weight: 400;
     }
 
     .xfp-pill {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 28px;
-      padding: 6px 11px;
+      min-height: 22px;
+      padding: 4px 8px;
       border-radius: 9999px;
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 600;
       line-height: 1;
       white-space: nowrap;
@@ -1592,51 +1719,38 @@
       border: 1px solid #ffd0d0;
     }
 
-    .xfp-metrics {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .xfp-metrics div {
-      min-width: 0;
-      padding: 10px 12px;
-      background: var(--xfp-parchment);
-      border-radius: 14px;
-    }
-
-    .xfp-metrics span {
-      display: block;
-      color: var(--xfp-muted);
-      font-size: 11px;
-      line-height: 1.15;
-      margin-bottom: 3px;
-    }
-
-    .xfp-metrics strong {
-      display: block;
+    .xfp-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 8px;
       color: var(--xfp-ink);
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.25;
-      word-break: break-word;
+      font-size: 11px;
+      line-height: 1.2;
     }
 
-    .xfp-country-card p,
+    .xfp-line b {
+      font-weight: 600;
+    }
+
+    .xfp-muted-line,
     .xfp-foot,
     .xfp-empty {
       color: var(--xfp-muted);
-      font-size: 12px;
-      line-height: 1.35;
-      margin: 10px 0 0;
+    }
+
+    .xfp-foot,
+    .xfp-empty {
+      font-size: 10px;
+      line-height: 1.2;
+      margin: 7px 2px 0;
     }
 
     .xfp-settings {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      padding: 14px;
-      margin: 0 14px 14px;
+      gap: 8px;
+      padding: 9px;
+      margin: 0 8px 8px;
     }
 
     .xfp-settings[hidden] {
@@ -1647,23 +1761,23 @@
     .xfp-toggle {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
       min-width: 0;
-      color: var(--xfp-muted-2);
-      font-size: 12px;
-      line-height: 1.2;
+      color: var(--xfp-muted);
+      font-size: 10px;
+      line-height: 1.1;
     }
 
     .xfp-toggle {
       flex-direction: row;
       align-items: center;
-      gap: 9px;
-      padding: 8px 0;
+      gap: 6px;
+      padding: 4px 0;
     }
 
     .xfp-toggle input {
-      width: 18px;
-      height: 18px;
+      width: 15px;
+      height: 15px;
       accent-color: var(--xfp-blue);
     }
 
@@ -1674,88 +1788,115 @@
     .xfp-field input,
     .xfp-field select {
       width: 100%;
-      height: 44px;
+      height: 34px;
       border: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 9999px;
       background: var(--xfp-white);
       color: var(--xfp-ink);
-      padding: 12px 16px;
-      font-size: 14px;
+      padding: 8px 11px;
+      font-size: 12px;
     }
 
     .xfp-settings-actions {
       display: flex;
       justify-content: flex-end;
-      gap: 8px;
+      gap: 6px;
     }
 
     #xfp-panel.xfp-collapsed {
-      width: auto;
+      width: 66px;
+      height: 42px;
+      min-width: 66px;
       overflow: visible;
+      background: transparent;
+      border-color: transparent;
+      border-radius: 9999px;
     }
 
     #xfp-panel.xfp-collapsed .xfp-header {
-      border-bottom: 0;
-      min-height: 56px;
-      border-radius: 18px;
+      position: static;
+      min-height: 42px;
+      width: 66px;
+      padding: 0;
+      border: 0;
+      border-radius: 9999px;
+      background: rgba(250, 250, 252, 0.92);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.14);
+      justify-content: center;
     }
 
-    #xfp-panel.xfp-collapsed .xfp-actions {
-      display: none;
-    }
-
+    #xfp-panel.xfp-collapsed .xfp-actions,
+    #xfp-panel.xfp-collapsed .xfp-title-button strong,
     #xfp-panel.xfp-collapsed .xfp-title-button small {
       display: none;
     }
 
+    #xfp-panel.xfp-collapsed .xfp-title-button {
+      justify-content: center;
+      width: 66px;
+      height: 42px;
+      flex: 0 0 auto;
+    }
+
+    #xfp-panel.xfp-collapsed .xfp-icon {
+      width: 62px;
+      height: 38px;
+      border: 0;
+      background: transparent;
+    }
+
+    #xfp-panel.xfp-collapsed .xfp-icon img {
+      width: 82px;
+    }
+
     #xfp-panel.xfp-compact {
-      width: 390px;
-    }
-
-    #xfp-panel.xfp-compact .xfp-travel-title {
-      font-size: 17px;
-    }
-
-    #xfp-panel.xfp-compact .xfp-metrics {
-      grid-template-columns: 1fr;
+      width: 320px;
     }
 
     @media (max-width: 760px) {
       #xfp-panel {
-        right: 8px;
-        top: 50%;
-        width: min(390px, calc(100vw - 16px));
-        max-height: calc(100vh - 32px);
+        right: 6px;
+        width: min(310px, calc(100vw - 12px));
+        max-height: calc(100vh - 14px);
+        font-size: 11px;
       }
 
       .xfp-header {
-        min-height: 58px;
-        padding: 10px 12px;
+        min-height: 44px;
+        padding: 7px;
       }
 
       .xfp-title-button strong {
-        font-size: 15px;
+        font-size: 13px;
+        max-width: 150px;
       }
 
-      .xfp-actions {
-        gap: 6px;
+      .xfp-title-button small {
+        max-width: 170px;
       }
 
       .xfp-secondary {
-        padding: 7px 12px;
+        padding: 5px 8px;
+      }
+
+      .xfp-round {
+        width: 26px;
+        height: 26px;
       }
 
       .xfp-body {
-        padding: 10px;
+        padding: 6px;
+      }
+
+      .xfp-travel,
+      .xfp-country-card {
+        padding: 7px;
       }
 
       .xfp-settings {
         grid-template-columns: 1fr;
-        margin: 0 10px 10px;
-      }
-
-      .xfp-metrics {
-        grid-template-columns: 1fr;
+        margin: 0 6px 6px;
+        padding: 8px;
       }
     }
 
@@ -1763,11 +1904,11 @@
       #xfp-panel {
         top: 8px;
         transform: none;
-        max-height: calc(100vh - 16px);
       }
     }
   `);
 
+  runV6Migration();
   createPanel();
   refreshAll(true);
   scheduleAutoRefresh();
