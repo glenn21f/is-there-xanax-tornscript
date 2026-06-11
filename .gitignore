@@ -1,0 +1,24 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local secrets / test keys
+.env
+.env.*
+*.local
+
+# Dependencies / build output, in case this becomes packaged later
+node_modules/
+dist/
+build/
+coverage/
+
+# Archives
+*.zip
+*.tar.gz
