@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Is there Xanax ?
 // @namespace    glenn.torn.is.there.xanax
-// @version      0.6.1
+// @version      0.6.2
 // @description  Checks whether Xanax is available abroad in Japan, United Kingdom, and South Africa, then estimates whether stock is likely to still be available when you land.
 // @author       Glenn
 // @homepageURL  https://github.com/glenn21f/is-there-xanax-tornscript
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_NAME = 'Is there Xanax ?';
-  const SCRIPT_VERSION = '0.6.1';
+  const SCRIPT_VERSION = '0.6.2';
   const LS_PREFIX = 'xfp_v3_';
   const DROQS_META = 'https://droqsdb.com/api/public/v1/meta';
   const DROQS_EXPORT = 'https://droqsdb.com/api/public/v1/export';
@@ -34,6 +34,14 @@
   const YATA_CACHE_KEY = LS_PREFIX + 'yata_cache';
   const YATA_COOLDOWN_KEY = LS_PREFIX + 'yata_cooldown_until';
   const XANAX_ID = 206;
+  const STOCK_HISTORY_KEY = LS_PREFIX + 'xanax_stock_history_v1';
+  const MAX_STOCK_HISTORY_POINTS = 80;
+  const HISTORY_LOOKBACK_MS = 6 * 60 * 60 * 1000;
+  const BASE_DRAIN_PER_MIN = {
+    jap: 2.0,
+    uni: 2.0,
+    sou: 1.5
+  };
   const XANAX_ICON_DATA = 'data:image/webp;base64,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';
 
   const COUNTRIES = {
@@ -846,56 +854,168 @@
     };
   }
 
+  function loadStockHistory() {
+    try {
+      const raw = localStorage.getItem(STOCK_HISTORY_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function saveStockHistory(history) {
+    try {
+      localStorage.setItem(STOCK_HISTORY_KEY, JSON.stringify(history));
+    } catch (_) {
+      // Storage can fail in strict/private contexts. Prediction falls back to baseline rates.
+    }
+  }
+
+  function rememberStockHistory(rows) {
+    if (!Array.isArray(rows) || !rows.length) return;
+
+    const history = loadStockHistory();
+    const now = Date.now();
+    const cutoff = now - HISTORY_LOOKBACK_MS;
+
+    rows.forEach((row) => {
+      if (!row?.code || !row.found || !Number.isFinite(row.quantity)) return;
+
+      const list = Array.isArray(history[row.code]) ? history[row.code] : [];
+      const last = list[list.length - 1];
+
+      // Avoid filling storage with duplicate auto-refresh points unless enough time passed
+      // or the stock changed. Stock changes are the useful signal for the landing estimate.
+      if (!last || last.q !== row.quantity || now - last.t > 10 * 60 * 1000) {
+        list.push({ t: now, q: Math.max(0, Math.round(row.quantity)) });
+      }
+
+      history[row.code] = list
+        .filter((point) => point && Number.isFinite(point.t) && Number.isFinite(point.q) && point.t >= cutoff)
+        .slice(-MAX_STOCK_HISTORY_POINTS);
+    });
+
+    saveStockHistory(history);
+  }
+
+  function stockDrainRate(code) {
+    const history = loadStockHistory();
+    const list = Array.isArray(history[code]) ? history[code].slice() : [];
+    const cutoff = Date.now() - HISTORY_LOOKBACK_MS;
+    const points = list
+      .filter((point) => point && Number.isFinite(point.t) && Number.isFinite(point.q) && point.t >= cutoff)
+      .sort((a, b) => a.t - b.t);
+
+    if (points.length >= 2) {
+      let lastRestockIndex = 0;
+      for (let i = 1; i < points.length; i += 1) {
+        if (points[i].q > points[i - 1].q + 5) lastRestockIndex = i;
+      }
+
+      const activePoints = points.slice(lastRestockIndex);
+      const rates = [];
+      for (let i = 1; i < activePoints.length; i += 1) {
+        const prev = activePoints[i - 1];
+        const next = activePoints[i];
+        const dt = (next.t - prev.t) / 60000;
+        const drop = prev.q - next.q;
+        if (dt >= 1 && dt <= 180 && drop > 0) rates.push(drop / dt);
+      }
+
+      if (rates.length) {
+        // Weighted enough to react to current demand, clamped so one weird refresh does not
+        // claim the whole country will evaporate in eight seconds. Torn is dumb, not magic.
+        const avg = rates.reduce((sum, rate) => sum + rate, 0) / rates.length;
+        const recent = rates[rates.length - 1];
+        const blended = (recent * 0.65) + (avg * 0.35);
+        return {
+          rate: Math.min(Math.max(blended, 0.25), 8),
+          source: 'trend',
+          label: 'trend model'
+        };
+      }
+    }
+
+    return {
+      rate: BASE_DRAIN_PER_MIN[code] ?? 2,
+      source: 'baseline',
+      label: 'safe model'
+    };
+  }
+
+  function predictLandingStock(row) {
+    const travel = state.travel;
+    const isCurrentTarget = travel?.mode === 'outbound' && travel.destinationCode === row.code;
+    const minutesToLanding = isCurrentTarget && travel?.timeLeftSec
+      ? Math.max(0, travel.timeLeftSec / 60)
+      : row.flightWorstMins;
+    const dataAgeMins = Number.isFinite(row.ageMins) ? row.ageMins : 0;
+    const predictionWindowMins = Math.max(0, minutesToLanding + dataAgeMins);
+    const drain = stockDrainRate(row.code);
+
+    if (!row.found || row.quantity <= 0) {
+      return {
+        qty: 0,
+        loss: 0,
+        rate: drain.rate,
+        source: drain.source,
+        label: drain.label,
+        minutesToLanding,
+        windowMins: predictionWindowMins
+      };
+    }
+
+    const expectedLoss = Math.ceil(drain.rate * predictionWindowMins);
+    const predictedQty = Math.max(0, Math.floor(row.quantity - expectedLoss));
+
+    return {
+      qty: predictedQty,
+      loss: expectedLoss,
+      rate: drain.rate,
+      source: drain.source,
+      label: drain.label,
+      minutesToLanding,
+      windowMins: predictionWindowMins
+    };
+  }
+
   function judge(row) {
     const desired = Number(getCfg('desiredQty')) || 1;
     const minStock = Number(getCfg('minStock')) || 1;
     const freshMins = Number(getCfg('freshMins')) || 20;
-    const travel = state.travel;
-    const isCurrentTarget = travel?.mode === 'outbound' && travel.destinationCode === row.code;
-    const minutesToLanding = isCurrentTarget && travel?.timeLeftSec ? travel.timeLeftSec / 60 : row.flightWorstMins;
+    const predicted = row.prediction?.qty ?? 0;
+    const staleByRefresh = Number.isFinite(row.ageMins) && row.ageMins > Math.max(freshMins, 30);
 
     if (!row.found) {
       return { label: 'No data', cls: 'bad', note: 'Stock source did not return Xanax for this country.' };
     }
 
     if (row.quantity <= 0) {
-      return { label: 'No stock', cls: 'bad', note: 'Do not fly for Xanax unless you are gambling on a restock.' };
+      return { label: 'No stock', cls: 'bad', note: 'No live stock shown right now.' };
     }
 
-    if (row.quantity < desired) {
-      return { label: 'Too low', cls: 'bad', note: `Only ${row.quantity} shown, but target is ${desired}.` };
+    if (predicted <= 0) {
+      return { label: 'Likely gone', cls: 'bad', note: 'Live stock exists, but the landing estimate says it may sell out before you arrive.' };
     }
 
-    if (!row.update) {
-      return { label: 'Unknown age', cls: 'warn', note: 'Stock exists, but the update timestamp is missing.' };
+    if (predicted < desired) {
+      return { label: 'Too low', cls: 'bad', note: `Estimated ${predicted} left when you land, below your target of ${desired}.` };
     }
 
-    const ageAtLandingMins = row.ageMins + minutesToLanding;
-    const hasBuffer = row.quantity >= Math.max(desired, minStock);
-
-    if (isCurrentTarget) {
-      if (ageAtLandingMins <= freshMins && hasBuffer) {
-        return { label: 'Good landing odds', cls: 'good', note: 'Your current flight lands into fresh data with stock buffer.' };
-      }
-      if (ageAtLandingMins <= freshMins) {
-        return { label: 'Thin landing', cls: 'warn', note: 'Your current flight lands into fresh data but low stock buffer.' };
-      }
-      return { label: 'Risky landing', cls: 'warn', note: 'Your current flight may land after the data is stale.' };
+    if (predicted < minStock) {
+      return { label: 'Thin', cls: 'warn', note: `Estimated ${predicted} left when you land. Low buffer.` };
     }
 
-    if (ageAtLandingMins <= freshMins && hasBuffer) {
-      return { label: 'Best shot', cls: 'good', note: 'Fresh enough if you left now, with stock buffer.' };
+    if (staleByRefresh && row.prediction?.source !== 'trend') {
+      return { label: 'Uncertain', cls: 'warn', note: 'Estimate is based on older source data and the safe model.' };
     }
 
-    if (ageAtLandingMins <= freshMins && !hasBuffer) {
-      return { label: 'Fresh but thin', cls: 'warn', note: 'Fresh if you left now, but stock buffer is low.' };
+    if (row.prediction?.source === 'trend') {
+      return { label: row.isCurrentTarget ? 'Good landing odds' : 'Good odds', cls: 'good', note: `Trend model estimates ${predicted} stock when you land.` };
     }
 
-    if (ageAtLandingMins <= 60 && row.quantity >= Math.max(desired, minStock * 2)) {
-      return { label: 'Decent gamble', cls: 'warn', note: 'Older by landing, but stock buffer is decent.' };
-    }
-
-    return { label: 'Risky', cls: 'warn', note: 'Stock may be stale by the time you land.' };
+    return { label: row.isCurrentTarget ? 'Possible landing' : 'Possible', cls: 'warn', note: `Safe model estimates ${predicted} stock when you land.` };
   }
 
   function buildRows(exportData) {
@@ -920,6 +1040,8 @@
         isCurrentTarget
       };
 
+      row.prediction = predictLandingStock(row);
+      row.predictedQty = row.prediction.qty;
       row.judgement = judge(row);
       return row;
     });
@@ -990,9 +1112,9 @@
     return rows.map((row) => {
       const j = row.judgement;
       const ageText = Number.isFinite(row.ageMins) ? minsToText(row.ageMins) : 'unknown';
-      const landingAge = Number.isFinite(row.ageMins)
-        ? minsToText(row.ageMins + (row.currentFlightMins ?? row.flightWorstMins))
-        : 'unknown';
+      const predicted = Number.isFinite(row.predictedQty) ? row.predictedQty : 0;
+      const loss = row.prediction?.loss ?? 0;
+      const model = row.prediction?.label || 'safe model';
       const flyText = row.currentFlightMins
         ? `land ${row.eta}`
         : `${minsToText(row.flightWorstMins)} → ${row.eta}`;
@@ -1004,14 +1126,15 @@
             <div class="xfp-country-name">${esc(row.short)} ${targetText}</div>
             <span class="xfp-pill ${j.cls}" title="${esc(j.note)}">${esc(j.label)}</span>
           </div>
-          <div class="xfp-line">
-            <span><b>${row.quantity.toLocaleString()}</b> stock</span>
+          <div class="xfp-line xfp-main-line">
+            <span>now <b>${row.quantity.toLocaleString()}</b></span>
+            <span>land <b>${predicted.toLocaleString()}</b></span>
             <span>${money(row.cost)}</span>
-            <span>${esc(flyText)}</span>
           </div>
           <div class="xfp-line xfp-muted-line">
+            <span>${esc(flyText)}</span>
             <span>data ${esc(ageText)}</span>
-            <span>landing age ${esc(landingAge)}</span>
+            <span>${esc(model)}${loss ? ` -${loss.toLocaleString()}` : ''}</span>
           </div>
         </article>`;
     }).join('');
@@ -1311,6 +1434,7 @@
         const result = yataResult.value;
         state.yata = result.data;
         state.rows = buildRows(state.yata);
+        rememberStockHistory(state.rows);
         state.dataSource = result.fromCache ? 'cache' : 'live';
         state.dataProvider = result.provider || 'Unknown';
         state.sourceMeta = result.meta || null;
